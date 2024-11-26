@@ -3,20 +3,10 @@
 #include "user/user.h"
 #include "kernel/fs.h"
  
-void strcat(char* str1, char* str2) {
-    int str1Len = strlen(str1);
- 
-    for (int i = 0; i < strlen(str2); i++) {
-        str1[str1Len + i] = str2[i];
-    }
- 
-    str1[strlen(str1)] = 0;
-}
- 
-__attribute__((noreturn)) void find(char* InitDir, char* FileName) {
+void find(char* InitDir, char* FileName) {
     int fd_dir; // fd for Directory
-    //int fd_spare = 0; // fd for a File
-    char CurDir[512] = { 0, };
+    char Buf[512] = { 0, };
+    char *p;
     struct stat st;
     struct dirent de;
  
@@ -39,35 +29,29 @@ __attribute__((noreturn)) void find(char* InitDir, char* FileName) {
         exit(1);
     }
  
+    strcpy(Buf, InitDir);
+    p = Buf+strlen(Buf);
+    *p++ = '/';
+ 
     while (read(fd_dir, &de, sizeof(de)) == sizeof(de) && de.name[0]) {
         if (!strcmp(de.name, ".") || !strcmp(de.name, ".."))
             continue;
+        
+        memmove(p, de.name, DIRSIZ);
+        p[DIRSIZ] = 0;
  
-        stat(de.name, &st);
+        stat(Buf, &st);
+        
         if(!strcmp(de.name, FileName) && st.type == T_FILE){
-            printf("%s/%s\n", InitDir, FileName);
+            printf("%s\n", Buf);
         }
  
-        printf("de.name: %s\nst.type: %d\n", de.name, st.type);
- 
         if (st.type == T_DIR) {
-            if (!fork()) { // child
-                strcpy(CurDir, InitDir);
-                CurDir[strlen(CurDir)] = '/';
-                strcat(CurDir, de.name);
- 
-                printf("[TEST] CurDir: %s\n", CurDir);
- 
-                find(CurDir, FileName);
-            }
-            else { // parent
-                wait(0);
-            }
+            find(Buf, FileName);
         }
     }
  
     close(fd_dir);
-    exit(0);
 }
  
 int main(int argc, char* argv[]) {
@@ -75,7 +59,7 @@ int main(int argc, char* argv[]) {
         fprintf(2, "Usage: find [target_dir] [file_name]\n");
         exit(1);
     }
- 
+    
     find(argv[1], argv[2]);
  
     exit(0);
