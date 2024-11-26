@@ -1,3 +1,4 @@
+// only for "Lab Util: find". It's deprecated since it doesn't work with "Lab Util: xargs".
 #include "kernel/types.h"
 #include "kernel/stat.h"
 #include "user/user.h"
